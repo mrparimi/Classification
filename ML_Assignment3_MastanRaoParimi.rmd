@@ -1,0 +1,116 @@
+---
+title: "ML_Asignment3"
+author: "Mastan Rao Parimmii"
+date: "10 November 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#2. Define your data exploration, imputation and visualization approach.
+import the dataa and calling the required libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+library(class)
+library(tree)
+library(e1071)
+library(corrplot)
+data1<-read.csv(file = "data/Model_Data.csv",header = TRUE)
+```
+Data Exploration
+```{r}
+str(data1)
+summary(data1)
+levels(data1$workclass)
+levels(data1$occupation)
+levels(data1$native.country)
+levels(data1$salary)
+```
+here we have 14 features and one label(salary).
+1.age: continuous; min- 17 and max- 90 and mean is 38.67
+2.workclass: factor with 9 levels "?,Federal-gov,Local-gov,Never-worked,Private,Self-emp-inc,Self-emp-not-inc,State-govv,Without-pay"
+3.fnlwgt: continuous; sampling weight used by usa gov during the SIPP.
+4.education number is reference for the eeducation level. So, education number can be elimate for model  building. 
+5.Here, "?" and "Never worked" are coorelating with "?" in occupation.
+
+```{r}
+plot(data1$capitalgain,data1$salary)
+plot(data1$capitalloss,data1$salary)
+```
+Here, capital_gain and capital-loss are not correlated with label salary so, we can elimate the capital_gain and caapital_loss for model building.
+#dividing the data into training and test data sets.
+```{r}
+set.seed(45)
+sample_items  <- sample.int(n=nrow(data1),
+                            size = floor(.8*nrow(data1)),
+                            replace = FALSE)
+data1_train <- data1[sample_items,]
+data1_test <- data1[-sample_items,]
+```
+
+#Tree Model
+model1 = tree.model <- tree(salary~age+workclass+fnlwgt+education+maritalstatus
++occupation+relationship+race+hoursperweek,data = data1_train)
+tree.model
+#education and education number are correlated so, education number is elimated.
+from the plots, capital gain and capital loss are not correlated with label  salary.
+```{r}
+tree.model <- tree(salary~age+workclass+fnlwgt+education+maritalstatus
++occupation+relationship+race+hoursperweek,data = data1_train)
+tree.model
+summary(tree.model)
+plot(tree.model)
+text(tree.model)
+
+model.prediction=predict(tree.model,data1_test[,-15])
+maxidx=function(arr){
+ return(which(arr==max(arr)))}
+idx=apply(model.prediction,c(1),maxidx)
+modelprediction=c('<=50K ','>50K')[idx]
+
+confmat=table(modelprediction,data1_test$salary)
+confmat
+accuracy=sum(diag(confmat))/sum(confmat)
+accuracy
+```
+#KNN Model
+
+```{r}
+for(i in 1:ncol(data1)){
+ data1[,i]=as.numeric(data1[,i])
+}
+pc_data1_train<-data1[sample_items,1:14]
+pc_data1_test<-data1[-sample_items,1:14]
+pc_data1_train_label<-data1[sample_items,15]
+pc_data1_test_label<-data1[-sample_items,15]
+k <- 13
+#Train model and obtain Test predictions
+knn_pred_label <- knn(train = pc_data1_train,test = pc_data1_test,
+                     cl = pc_data1_train_label,k)
+knn_pred_label
+#Compare predictions and actual expected values
+confmat2 <- table(pc_data1_test_label,knn_pred_label)
+#Compute accuracy of predictions
+accuracy <- sum(diag(confmat2))/sum(confmat2)
+accuracy
+```
+#Naive Bayes
+```{r}
+model3.naive <- naiveBayes(salary~age+workclass+fnlwgt+education+maritalstatus+occupation+relationship+race+hoursperweek,data = data1_train)
+model3.naive
+#predict the model
+pred <- predict(model3.naive,data1_test[,-15])
+pred
+#confusion matrix  
+confmat <- table(pred,data1_test$salary)
+confmat
+accuracy2 <- sum(diag(confmat))/sum(confmat)
+accuracy2
+
+```
+
+Github user: mrparimi
